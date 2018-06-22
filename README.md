@@ -1,6 +1,6 @@
 # RL Trials
 
-###ENVIRONMENT
+### ENVIRONMENT
 - tensorflow
 - python 3
 - gym
