@@ -90,8 +90,28 @@ class A2C2_d:
         self.values = []
         self.next_state = None
 
-    def train(self, done):
-        N_STEP = 32
+    def n_step_return(self, done, gamma=0.95, n_step=32):
+        r = np.array(self.rewards)
+        batch_size = r.shape[0]
+        obj_num = r.shape[1]
+        gamma = gamma * np.array([1]*obj_num)
+
+        _, R = self.forward(self.next_state)
+        if done:
+            R[0] = 0. - 0.99
+
+        returns = np.zeros_like(r)
+
+        multiplier = np.array([gamma**n for n in range(n_step)])
+        for t in reversed(range(batch_size)):
+            if t > batch_size - n_step - 1:
+                R = r[t] + gamma * R
+                returns[t] = R
+            else:
+                returns[t] = np.sum(multiplier * r[t:t + n_step]) + self.values[t + n_step]
+        return returns
+
+    def lambda_return(self, done, gamma=0.95, lam=0.9):
 
         r = np.array(self.rewards)
         batch_size = r.shape[0]
@@ -100,16 +120,22 @@ class A2C2_d:
         _, R = self.forward(self.next_state)
         if done:
             R[0] = 0. - 0.99
+        self.values.append(R)
+        vs = np.array(self.values)
 
         returns = np.zeros_like(r)
 
-        multiplier = np.array([[0.95**n, 0.95**n] for n in range(N_STEP)])
         for t in reversed(range(batch_size)):
-            if t > batch_size - N_STEP - 1:
-                R = r[t] + np.array([0.95, 0.95]) * R
-                returns[t] = R
-            else:
-                returns[t] = np.sum(multiplier*r[t:t+N_STEP]) + self.values[t+N_STEP]
+            R = r[t] + (1-lam) * gamma * vs[t+1] +\
+                lam * gamma * R
+            returns[t] = R
+
+        return returns
+
+    def train(self, done, return_method=None):
+        if return_method is None:
+            return_method = self.lambda_return
+        returns = return_method(done)
 
         feed_dict = {self.state_layer: np.array(self.states),
                      self.action_fb: np.array(self.actions),

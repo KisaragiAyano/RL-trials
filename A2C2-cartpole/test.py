@@ -28,6 +28,8 @@ agent = A2C2_d(settings)
 def reward_comp_2critic(r1, r2): return [r1, r2]
 def reward_comp_1critic(r1, r2): return [r1+r2, 0]
 reward_comp = reward_comp_2critic
+print('METHOD : {}'.format(reward_comp.__name__))
+
 
 # Training process
 EPS = 4000
@@ -54,7 +56,7 @@ for ieps in range(EPS):
 
         agent.buffer_append(state, action, reward, value, next_state)
         if len(agent.rewards) >= 100 or done:
-            closs = agent.train(done)
+            closs = agent.train(done, return_method=agent.lambda_return)
         if done:
             rs = np.array(rs)
             print('eps:{} | r:{:.2f}, {:.2f} | closs:{:.2f}'.format(ieps, np.sum(rs, axis=0)[0], np.average(rs, axis=0)[1], closs))
